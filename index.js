@@ -3,9 +3,8 @@ const TxRelaySigner = signers.TxRelaySigner
 const SimpleSigner = signers.SimpleSigner
 const Web3 = require('web3')
 const Transaction = require('ethereumjs-tx')
-const logger = require('./logger')
 
-export default class MetaTxHandler {
+class MetaTxHandler {
   constructor (privKey, provider, txRelayAddress, txRelayABI, logger) {
     this.privKey = privKey
     this.web3 = new Web3(provider)
