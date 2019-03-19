@@ -60,8 +60,8 @@ class MetaTxHandler {
       decodedTx = TxRelaySigner.decodeMetaTx(metaSignedTx)
     } catch (error) {
       if (this.logger) {
-        logger.error('Error on TxRelaySigner.decodeMetaTx or getRelayerAddress')
-        logger.error(error)
+        this.logger.error('Error on TxRelaySigner.decodeMetaTx or getRelayerAddress')
+        this.logger.error(error)
       } else {
         console.error('Error on TxRelaySigner.decodeMetaTx or getRelayerAddress')
         console.error(error)
@@ -72,7 +72,7 @@ class MetaTxHandler {
 
     if (decodedTx.claimedAddress === '0x') {
       this.logger
-        ? logger.info('no claimedAddress')
+        ? this.logger.info('no claimedAddress')
         : console.log('no claimedAddress')
       return false
     }
@@ -82,8 +82,8 @@ class MetaTxHandler {
       nonce = await this.getRelayNonce(decodedTx.claimedAddress)
     } catch (error) {
       if (this.logger) {
-        logger.error('Error on getRelayNonce')
-        logger.error(error)
+        this.logger.error('Error on getRelayNonce')
+        this.logger.error(error)
       } else {
         console.error('Error on getRelayNonce')
         console.error(error)
@@ -95,7 +95,7 @@ class MetaTxHandler {
     }
     try {
       this.logger
-        ? logger.info(
+        ? this.logger.info(
           `trying to validate metasig, relayerAddress is ${relayerAddress}`
         )
         : console.log(
@@ -109,8 +109,8 @@ class MetaTxHandler {
       return validMetaSig
     } catch (error) {
       if (this.logger) {
-        logger.error('Error on TxRelaySigner.isMetaSignatureValid')
-        logger.error(error)
+        this.logger.error('Error on TxRelaySigner.isMetaSignatureValid')
+        this.logger.error(error)
       } else {
         console.error('Error on TxRelaySigner.isMetaSignatureValid')
         console.error(error)
@@ -172,8 +172,8 @@ class MetaTxHandler {
       signedRawTx = await this.signTx({ txHex: body.metaSignedTx })
     } catch (error) {
       if (this.logger) {
-        logger.error('Error signing transaction')
-        logger.error(error)
+        this.logger.error('Error signing transaction')
+        this.logger.error(error)
       } else {
         console.error('Error signing transaction')
         console.error(error)
@@ -186,8 +186,8 @@ class MetaTxHandler {
       return txHash
     } catch (error) {
       if (this.logger) {
-        logger.error('Error on sendRawTransaction')
-        logger.error(error)
+        this.logger.error('Error on sendRawTransaction')
+        this.logger.error(error)
       } else {
         console.error('Error on sendRawTransaction')
         console.error(error)
