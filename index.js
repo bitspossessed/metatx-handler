@@ -163,7 +163,7 @@ class MetaTxHandler {
     });
   };
 
-  async signRelayerTx ({ txHex }) {
+  async signRelayerTx (txHex) {
     if (!txHex) throw new Error('no txHex')
     const tx = new Transaction(Buffer.from(txHex, 'hex'))
     const signer = this.initSigner()
@@ -213,7 +213,7 @@ class MetaTxHandler {
 
     let signedRawTx
     try {
-      signedRawTx = await this.signRelayerTx({ txHex: body.metaSignedTx })
+      signedRawTx = await this.signRelayerTx(body.metaSignedTx)
     } catch (error) {
       if (this.logger) {
         this.logger.error('Error signing transaction')
