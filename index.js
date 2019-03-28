@@ -5,8 +5,10 @@ const Web3 = require('web3')
 const Transaction = require('ethereumjs-tx')
 
 class MetaTxHandler {
-  constructor (privKey, provider, txRelayAddress, txRelayABI, logger) {
-    this.privKey = privKey
+  constructor (relayerPrivKey, provider, txRelayAddress, txRelayABI, logger) {
+    if (privKey) throw new Error('relayerPrivKey is required')
+    this.privKey = relayerPrivKey
+    this.txRelayAddress = txRelayAddress
     this.web3 = new Web3(provider)
     this.BN = this.web3.utils.BN
     this.TxRelayContract = new this.web3.eth.Contract(
@@ -26,8 +28,25 @@ class MetaTxHandler {
     return nonce.toString(16)
   }
 
-  initSigner () {
+  initSimpleSigner () {
     const signer = new SimpleSigner(generators.KeyPair.fromPrivateKey(this.privKey))
+    return signer
+  }
+
+  getSenderKeyPair (senderPrivKey) {
+    if (privKey) throw new Error("sender's private key is required")
+    return generators.KeyPair.fromPrivateKey(senderPrivKey);
+  }
+
+  initTxRelaySigner (senderPrivKey, _whitelist) {
+    const keyPair = this.getSenderKeyPair(senderPrivKey)
+    const whitelist = _whitelist ? _whitelist : '0x0000000000000000000000000000000000000000'
+    const signer = new TxRelaySigner(
+      keyPair,
+      this.txRelayAddress,
+      keyPair.address,
+      whitelist
+    );
     return signer
   }
 
@@ -119,7 +138,32 @@ class MetaTxHandler {
     }
   }
 
-  async signTx ({ txHex }) {
+  async signMetaTx (txParams, senderPrivKey, relayNonce, whitelist) {
+    let nonce
+    if (!relayNonce) {
+      const sender = this.getSenderKeyPair(senderPrivKey)
+      nonce = await this.getRelayNonce(sender.address)
+    } else { nonce = relayNonce }
+    const signer = this.initTxRelaySigner(senderPrivKey, whitelist)
+    txParams.nonce = this.web3.utils.toHex(nonce);
+    const tx = new Transaction(txParams);
+    const rawTx = `0x${tx.serialize().toString('hex')}`;
+    console.log(rawTx)
+    signer.signRawTx(rawTx, (err, metaSignedTx) => {
+      const params = {
+        metaNonce: txParams.nonce,
+        metaSignedTx,
+      };
+      if (this.logger) {
+        this.logger.info(params)
+      } else {
+        console.log(params);
+      }
+      return params;
+    });
+  };
+
+  async signRelayerTx ({ txHex }) {
     if (!txHex) throw new Error('no txHex')
     const tx = new Transaction(Buffer.from(txHex, 'hex'))
     const signer = this.initSigner()
@@ -169,7 +213,7 @@ class MetaTxHandler {
 
     let signedRawTx
     try {
-      signedRawTx = await this.signTx({ txHex: body.metaSignedTx })
+      signedRawTx = await this.signRelayerTx({ txHex: body.metaSignedTx })
     } catch (error) {
       if (this.logger) {
         this.logger.error('Error signing transaction')
