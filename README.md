@@ -1,5 +1,7 @@
 # metatx-server
 
+### This package is for serverside processing of ethereum meta transactions.  It is the server side component of [metatx-client](https://www.npmjs.com/package/metatx-client), but it can also be used on it's own.
+
 Exposes a class MetaTxHandler that should be instantiated like this:
 
 ```
@@ -12,7 +14,7 @@ const metaTxHandler = new MetaTxHandler(
 )
 ```
 
-Methods:
+### Methods:
 
 
 `getRelayerAddress` => returns the given relayer address
@@ -44,7 +46,7 @@ const tx = {
 
 `signRelayerTx (txHex)` => Signs a meta transaction for forwarding to the relayer contract. `txHex` should be the signed meta tx in rlp encoding. Also estimates the gas price needed to execute the transaction.
 
-'sendRawTransaction (signedRawTx)' => signes and sends a raw transaction to `provider` 
+`sendRawTransaction (signedRawTx)` => signes and sends a raw transaction to `provider` 
 
 `handle (req)` => Fully handles a request to the server to process a meta transaction. Can be used like this:
 
