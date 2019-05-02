@@ -1,6 +1,6 @@
 {
   "name": "metatx-server",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Meta Tx for the backend server",
   "main": "index.js",
   "scripts": {

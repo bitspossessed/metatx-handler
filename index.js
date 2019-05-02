@@ -6,7 +6,7 @@ const Transaction = require('ethereumjs-tx')
 
 class MetaTxHandler {
   constructor (relayerPrivKey, provider, txRelayAddress, txRelayABI, logger) {
-    if (relayerPrivKey) throw new Error('relayerPrivKey is required')
+    if (!relayerPrivKey) throw new Error('relayerPrivKey is required')
     this.privKey = relayerPrivKey
     this.txRelayAddress = txRelayAddress
     this.web3 = new Web3(provider)
@@ -34,7 +34,7 @@ class MetaTxHandler {
   }
 
   getSenderKeyPair (senderPrivKey) {
-    if (senderPrivKey) throw new Error("sender's private key is required")
+    if (!senderPrivKey) throw new Error("sender's private key is required")
     return generators.KeyPair.fromPrivateKey(senderPrivKey);
   }
 
