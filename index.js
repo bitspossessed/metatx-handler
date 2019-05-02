@@ -149,7 +149,7 @@ class MetaTxHandler {
     const tx = new Transaction(txParams);
     const rawTx = `0x${tx.serialize().toString('hex')}`;
     console.log(rawTx)
-    signer.signRawTx(rawTx, (err, metaSignedTx) => {
+    return signer.signRawTx(rawTx, (err, metaSignedTx) => {
       const params = {
         metaNonce: txParams.nonce,
         metaSignedTx,
