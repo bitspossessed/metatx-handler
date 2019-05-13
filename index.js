@@ -148,25 +148,27 @@ class MetaTxHandler {
     txParams.nonce = this.web3.utils.toHex(nonce);
     const tx = new Transaction(txParams);
     const rawTx = `0x${tx.serialize().toString('hex')}`;
-    console.log(rawTx)
-    return signer.signRawTx(rawTx, (err, metaSignedTx) => {
-      const params = {
-        metaNonce: txParams.nonce,
-        metaSignedTx,
-      };
-      if (this.logger) {
-        this.logger.info(params)
-      } else {
-        console.log(params);
-      }
-      return params;
+    return new Promise((resolve, reject) => {
+      signer.signRawTx(rawTx, (err, metaSignedTx) => {
+        if (err) reject(err)
+        const params = {
+          metaNonce: txParams.nonce,
+          metaSignedTx,
+        };
+        if (this.logger) {
+          this.logger.info(params)
+        } else {
+          console.log(params);
+        }
+        resolve(params);
+      });
     });
   };
 
   async signRelayerTx (txHex) {
     if (!txHex) throw new Error('no txHex')
     const tx = new Transaction(Buffer.from(txHex, 'hex'))
-    const signer = this.initSigner()
+    const signer = this.initSimpleSigner()
     const price = await this.web3.eth.getGasPrice()
     tx.gasPrice = new this.BN(price).toNumber()
     tx.nonce = await this.web3.eth.getTransactionCount(signer.getAddress())
@@ -176,9 +178,7 @@ class MetaTxHandler {
     const rawTx = tx.serialize().toString('hex')
     return new Promise((resolve, reject) => {
       signer.signRawTx(rawTx, (error, signedRawTx) => {
-        if (error) {
-          reject(error)
-        }
+        if (error) reject(error)
         resolve(signedRawTx)
       })
     })
@@ -190,8 +190,12 @@ class MetaTxHandler {
     if (!signedRawTx.startsWith('0x')) {
       signedRawTx = `0x${signedRawTx}`
     }
-    const txHash = await this.web3.eth.sendSignedTransaction(signedRawTx)
-    return txHash
+    return new Promise((resolve, reject) => {
+      this.web3.eth.sendSignedTransaction(signedRawTx, (error, txHash) => {
+        if (error) reject(error)
+        resolve(txHash)
+      })
+    })
   }
 
   async handle (req) {
