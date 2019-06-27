@@ -16,6 +16,12 @@ class MetaTxHandler {
       txRelayAddress
     )
     this.logger = logger
+
+    this.web3.eth.net.getId().then( id => {
+      console.log('MetaTxHandler: rpc network connected, id:' + id)
+    }).catch(err => {
+      console.error(err)
+    })
   }
 
   getRelayerAddress () {
@@ -166,6 +172,10 @@ class MetaTxHandler {
   };
 
   async signRelayerTx (txHex) {
+
+    let id = await this.web3.eth.net.getId()
+    console.log('signRelayerTx: rpc network connected, id:' + id)
+
     if (!txHex) throw new Error('no txHex')
     const tx = new Transaction(Buffer.from(txHex, 'hex'))
     const signer = this.initSimpleSigner()
