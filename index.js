@@ -68,11 +68,13 @@ class MetaTxHandler {
       from
     }
     let price = 3000000
-    try {
-      price = await this.web3.eth.estimateGas(txCopy)
-    } catch (err) {
-      throw err
-    }
+    // try {
+    // price = await this.web3.eth.estimateGas(txCopy)
+    // } catch (err) {
+    //   console.log(err)
+    //   throw err
+    // }
+    console.log(txCopy)
     return new this.BN(price)
   }
 
@@ -180,9 +182,18 @@ class MetaTxHandler {
     const tx = new Transaction(Buffer.from(txHex, 'hex'))
     const signer = this.initSimpleSigner()
     const price = await this.web3.eth.getGasPrice()
-    tx.gasPrice = new this.BN(price).toNumber()
-    tx.nonce = await this.web3.eth.getTransactionCount(signer.getAddress())
-    const estimatedGas = await this.estimateGas(tx, signer.getAddress())
+    
+    try {
+      tx.gasPrice = new this.BN(price).toNumber()
+      console.log(tx.gasPrice)
+      tx.nonce = await this.web3.eth.getTransactionCount(signer.getAddress())    
+      console.log(tx.nonce)
+    } catch (err) {
+      console.error(err)
+    }
+    
+    const estimatedGas = await this.estimateGas(tx, signer.getAddress())    
+    console.log(estimatedGas)
     // add some buffer to the limit
     tx.gasLimit = estimatedGas.add(new this.BN(1000000))
     const rawTx = tx.serialize().toString('hex')
@@ -221,21 +232,22 @@ class MetaTxHandler {
     }
 
     // Check if metaTx signature is valid
-    if (!(await this.isMetaSignatureValid(body.metaSignedTx, body.metaNonce))) {
-      throw { code: 403, message: 'MetaTx signature invalid' }
-    }
+    // if (!(await this.isMetaSignatureValid(body.metaSignedTx, body.metaNonce))) {
+    //   throw { code: 403, message: 'MetaTx signature invalid' }
+    // }
 
     let signedRawTx
     try {
       signedRawTx = await this.signRelayerTx(body.metaSignedTx)
     } catch (error) {
-      if (this.logger) {
-        this.logger.error('Error signing transaction')
-        this.logger.error(error)
-      } else {
-        console.error('Error signing transaction')
-        console.error(error)
-      }
+      console.error(error.message, error.stack)
+      // if (this.logger) {
+      //   this.logger.error('Error signing transaction')
+      //   this.logger.error(error.message, error.stack)
+      // } else {
+      //   console.error('Error signing transaction')
+      //   console.error(error.message, error.stack)
+      // }
       throw { code: 500, message: error.message }
     }
 
@@ -243,13 +255,14 @@ class MetaTxHandler {
       const txHash = await this.sendRawTransaction(signedRawTx)
       return txHash
     } catch (error) {
-      if (this.logger) {
-        this.logger.error('Error on sendRawTransaction')
-        this.logger.error(error)
-      } else {
-        console.error('Error on sendRawTransaction')
-        console.error(error)
-      }
+      console.error(error.message, error.stack)
+      // if (this.logger) {
+      //   this.logger.error('Error on sendRawTransaction')
+      //   this.logger.error(error)
+      // } else {
+      //   console.error('Error on sendRawTransaction')
+      //   console.error(error)
+      // }
       throw { code: 500, message: error.message }
     }
   }
