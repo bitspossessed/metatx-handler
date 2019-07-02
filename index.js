@@ -9,7 +9,7 @@ class MetaTxHandler {
     if (!relayerPrivKey) throw new Error('relayerPrivKey is required')
     this.privKey = relayerPrivKey
     this.txRelayAddress = txRelayAddress
-    this.web3 = new Web3(provider)
+    this.web3 = new Web3(provider, null, { transactionConfirmationBlocks: 1 })
     this.BN = this.web3.utils.BN
     this.TxRelayContract = new this.web3.eth.Contract(
       txRelayABI,
@@ -68,13 +68,12 @@ class MetaTxHandler {
       from
     }
     let price = 3000000
-    // try {
-    // price = await this.web3.eth.estimateGas(txCopy)
-    // } catch (err) {
-    //   console.log(err)
-    //   throw err
-    // }
-    console.log(txCopy)
+    try {
+      price = await this.web3.eth.estimateGas(txCopy)
+    } catch (err) {
+      console.log(err)
+      throw err
+    }
     return new this.BN(price)
   }
 
@@ -181,22 +180,16 @@ class MetaTxHandler {
     if (!txHex) throw new Error('no txHex')
     const tx = new Transaction(Buffer.from(txHex, 'hex'))
     const signer = this.initSimpleSigner()
-    const price = await this.web3.eth.getGasPrice()
-    
-    try {
-      tx.gasPrice = new this.BN(price).toNumber()
-      console.log(tx.gasPrice)
-      tx.nonce = await this.web3.eth.getTransactionCount(signer.getAddress())    
-      console.log(tx.nonce)
-    } catch (err) {
-      console.error(err)
-    }
-    
+    const price = await this.web3.eth.getGasPrice()    
+    tx.gasPrice = new this.BN(price).toNumber()
+    tx.nonce = await this.web3.eth.getTransactionCount(signer.getAddress())            
     const estimatedGas = await this.estimateGas(tx, signer.getAddress())    
-    console.log(estimatedGas)
     // add some buffer to the limit
     tx.gasLimit = estimatedGas.add(new this.BN(1000000))
+
+    //console.log('tx', tx)
     const rawTx = tx.serialize().toString('hex')
+
     return new Promise((resolve, reject) => {
       signer.signRawTx(rawTx, (error, signedRawTx) => {
         if (error) reject(error)
@@ -211,6 +204,7 @@ class MetaTxHandler {
     if (!signedRawTx.startsWith('0x')) {
       signedRawTx = `0x${signedRawTx}`
     }
+
     return new Promise((resolve, reject) => {
       this.web3.eth.sendSignedTransaction(signedRawTx, (error, txHash) => {
         if (error) reject(error)
@@ -232,9 +226,9 @@ class MetaTxHandler {
     }
 
     // Check if metaTx signature is valid
-    // if (!(await this.isMetaSignatureValid(body.metaSignedTx, body.metaNonce))) {
-    //   throw { code: 403, message: 'MetaTx signature invalid' }
-    // }
+    if (!(await this.isMetaSignatureValid(body.metaSignedTx, body.metaNonce))) {
+      throw { code: 403, message: 'MetaTx signature invalid' }
+    }
 
     let signedRawTx
     try {
