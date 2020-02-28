@@ -1,8 +1,8 @@
-const { generators, signers } = require('eth-signer')
-const TxRelaySigner = signers.TxRelaySigner
-const SimpleSigner = signers.SimpleSigner
 const Web3 = require('web3')
 const Transaction = require('ethereumjs-tx')
+const generateKeypair = require('./generate-keypair')
+const TxRelaySigner = require('./tx-relay-signer')
+const SimpleSigner = require('./simple-signer')
 
 class MetaTxHandler {
   constructor (relayerPrivKey, provider, txRelayAddress, txRelayABI, logger) {
@@ -11,6 +11,7 @@ class MetaTxHandler {
     this.txRelayAddress = txRelayAddress
     this.web3 = new Web3(provider)
     this.BN = this.web3.utils.BN
+    this.Transaction = Transaction
     this.TxRelayContract = new this.web3.eth.Contract(
       txRelayABI,
       txRelayAddress
@@ -29,13 +30,13 @@ class MetaTxHandler {
   }
 
   initSimpleSigner () {
-    const signer = new SimpleSigner(generators.KeyPair.fromPrivateKey(this.privKey))
+    const signer = new SimpleSigner(generateKeypair(this.privKey))
     return signer
   }
 
   getSenderKeyPair (senderPrivKey) {
     if (!senderPrivKey) throw new Error("sender's private key is required")
-    return generators.KeyPair.fromPrivateKey(senderPrivKey);
+    return generateKeypair(senderPrivKey);
   }
 
   initTxRelaySigner (senderPrivKey, _whitelist) {
@@ -45,7 +46,8 @@ class MetaTxHandler {
       keyPair,
       this.txRelayAddress,
       keyPair.address,
-      whitelist
+      whitelist,
+      this.txRelayABI
     );
     return signer
   }
@@ -203,6 +205,15 @@ class MetaTxHandler {
 
     if (!body.metaSignedTx) {
       throw { code: 400, message: 'metaSignedTx parameter missing' }
+    }
+
+    if (!body.metaNonce) {
+      throw { code: 400, message: 'metaNonce parameter missing' }
+    }
+
+    // support number or hexstring for metaNonce
+    if (!body.metaNonce.startsWith('0x')) {
+      body.metaNonce = web3.utils.toHex(body.metaNonce);
     }
 
     // support hex strings starting with 0x
