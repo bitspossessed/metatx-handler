@@ -3,6 +3,10 @@
 var util = require("ethereumjs-util");
 var secp256k1 = util.secp256k1;
 
+function hex0x(buffer) {
+  return util.addHexPrefix(buffer.toString('hex'));
+}
+
 function generateKeypair(privateKey) {
   if (!Buffer.isBuffer(privateKey)) {
     privateKey = new Buffer(privateKey,'hex');

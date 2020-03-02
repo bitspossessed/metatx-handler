@@ -3,11 +3,13 @@
 var Transaction = require('ethereumjs-tx');
 var util = require("ethereumjs-util");
 var abi = require('ethereumjs-abi')
+var web3 = require('web3')
 
 function encodeFunctionTxData(functionName, types, args) {
 
   var fullName = functionName + '(' + types.join() + ')';
-  var signature = web3.eth.abi.encodeFunctionSignature(fullName);
+  var w = new web3();
+  var signature = w.eth.abi.encodeFunctionSignature(fullName);
   var dataHex = signature + abi.rawEncode(types, args);
 
   return dataHex;
@@ -34,6 +36,18 @@ function getTypesFromAbi(abi, functionName) {
   return (funcJson.inputs).map(getTypes);
 }
 
+function add0x(input) {
+  if (typeof(input) !== 'string') {
+    return input;
+  }
+  else if (input.length < 2 || input.slice(0,2) !== '0x') {
+    return '0x' + input;
+  }
+  else {
+    return input;
+  }
+}
+
 function functionTx(abi, functionName, args, txObject) {
   // txObject contains gasPrice, gasLimit, nonce, to, value
 
@@ -56,6 +70,7 @@ var TxRelaySigner = function(keypair, txRelayAddress, txSenderAddress, whitelist
   this.txRelayAddress = txRelayAddress;
   this.txSenderAddress = txSenderAddress;
   this.whitelistOwner = whitelistOwner;
+  this.txRelayAbi = txRelayAbi;
 }
 
 TxRelaySigner.prototype.getAddress = function() {
@@ -65,6 +80,7 @@ TxRelaySigner.prototype.getAddress = function() {
 TxRelaySigner.prototype.signRawTx = function(rawTx, callback) {
   var rawTx = util.stripHexPrefix(rawTx);
   var txCopy = new Transaction(Buffer.from(rawTx, 'hex'));
+  // console.log(txCopy)
 
   var nonce = txCopy.nonce.toString('hex');
   var to = txCopy.to.toString('hex');
@@ -79,13 +95,20 @@ TxRelaySigner.prototype.signRawTx = function(rawTx, callback) {
   //                 + util.stripHexPrefix(this.whitelistOwner) + pad(nonce) + to + data;
   // var hash = solsha(hashInput)
 
+  console.log('prehash')
+  console.log(to)
   var hash = abi.soliditySHA3(
     [ "address", "address", "uint", "address", "string" ],
-    [ this.txRelayAddress, this.whitelistOwner, new web3.utils.toBN(nonce), to, data]).toString('hex')
-
+    [ this.txRelayAddress, this.whitelistOwner, new web3.utils.toBN(nonce), util.addHexPrefix(to), data]).toString('hex')
+  console.log('hash')
+  console.log(hash)
+  
 //     new BN("43989fb883ba8111221e89123897538475893837", 16), 0, 10000, 1448075779 ]
 // ).toString('hex')
+
   var sig = this.signMsgHash(hash);
+
+  console.log(sig)
 
   var wrapperTx = {
     "gasPrice": txCopy.gasPrice,
@@ -94,7 +117,10 @@ TxRelaySigner.prototype.signRawTx = function(rawTx, callback) {
     "to": this.txRelayAddress,
     "from": this.txSenderAddress,
   };
-  var rawMetaSignedTx = functionTx(txRelayAbi, "relayMetaTx",
+
+  console.log('txRelayAbi')
+  console.log(this.txRelayAbi)
+  var rawMetaSignedTx = functionTx(this.txRelayAbi, "relayMetaTx",
     [ sig.v,
       util.addHexPrefix(sig.r.toString('hex')),
       util.addHexPrefix(sig.s.toString('hex')),
@@ -113,7 +139,7 @@ TxRelaySigner.prototype.signMsgHash = function(msgHash) {
 TxRelaySigner.decodeMetaTx = function(rawMetaSignedTx) {
   var tx = new Transaction(Buffer.from(rawMetaSignedTx, 'hex'));
   var txData = tx.data.toString('hex');
-  var types = getTypesFromAbi(txRelayAbi, "relayMetaTx");
+  var types = getTypesFromAbi(this.txRelayAbi, "relayMetaTx");
   var params = decodeFunctionTxData(txData, types);
 
   decodedMetaTx = {}

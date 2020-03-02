@@ -47,7 +47,7 @@ class MetaTxHandler {
       this.txRelayAddress,
       keyPair.address,
       whitelist,
-      this.txRelayABI
+      this.TxRelayContract.options.jsonInterface
     );
     return signer
   }
@@ -141,15 +141,25 @@ class MetaTxHandler {
   }
 
   async signMetaTx (txParams, senderPrivKey, relayNonce, whitelist) {
+    console.log('in sign')
+    console.log(relayNonce)
     let nonce
-    if (!relayNonce) {
+    if (!relayNonce && relayNonce !== 0) {
+      console.log('not relay nonce branch')
       const sender = this.getSenderKeyPair(senderPrivKey)
       nonce = await this.getRelayNonce(sender.address)
     } else { nonce = relayNonce }
+    console.log(nonce)
+    console.log('test')
     const signer = this.initTxRelaySigner(senderPrivKey, whitelist)
+    console.log('test2')
     txParams.nonce = this.web3.utils.toHex(nonce);
+    console.log(txParams.nonce)
     const tx = new Transaction(txParams);
+    console.log(tx)
     const rawTx = `0x${tx.serialize().toString('hex')}`;
+    console.log('raw')
+    console.log(rawTx)
     return new Promise((resolve, reject) => {
       signer.signRawTx(rawTx, (err, metaSignedTx) => {
         if (err) reject(err)
@@ -213,7 +223,8 @@ class MetaTxHandler {
 
     // support number or hexstring for metaNonce
     if (!body.metaNonce.startsWith('0x')) {
-      body.metaNonce = web3.utils.toHex(body.metaNonce);
+      console.log(body.metaNonce)
+      body.metaNonce = this.web3.utils.toHex(body.metaNonce);
     }
 
     // support hex strings starting with 0x
