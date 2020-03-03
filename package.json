@@ -1,7 +1,7 @@
 {
-  "name": "metatx-server",
+  "name": "metatx-handler",
   "version": "1.0.12",
-  "description": "Meta Tx for the backend server",
+  "description": "Utilities library for meta transactions, descended from metatx-server",
   "main": "index.js",
   "scripts": {
     "test": "test"
