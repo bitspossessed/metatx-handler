@@ -24,7 +24,11 @@ class MetaTxHandler {
 
   async getRelayNonce (address) {
     if (!address) throw new Error('no address')
-    const nonce = await this.TxRelayContract.methods.getNonce(address).call()
+    try {
+      const nonce = await this.TxRelayContract.methods.getNonce(address).call()
+    } catch (err) {
+      console.log(err)
+    }
     return nonce.toString(16)
   }
 
@@ -96,22 +100,6 @@ class MetaTxHandler {
       return false
     }
 
-    let nonce
-    try {
-      nonce = await this.getRelayNonce(decodedTx.claimedAddress)
-    } catch (error) {
-      if (this.logger) {
-        this.logger.error('Error on getRelayNonce')
-        this.logger.error(error)
-      } else {
-        console.error('Error on getRelayNonce')
-        console.error(error)
-      }
-      return false
-    }
-    if (metaNonce !== undefined && metaNonce > nonce) {
-      nonce = metaNonce.toString()
-    }
     try {
       this.logger
         ? this.logger.info(
@@ -123,7 +111,7 @@ class MetaTxHandler {
       const validMetaSig = TxRelaySigner.isMetaSignatureValid(
         relayerAddress,
         decodedTx,
-        nonce
+        metaNonce
       )
       return validMetaSig
     } catch (error) {
@@ -151,16 +139,12 @@ class MetaTxHandler {
     return new Promise((resolve, reject) => {
       signer.signRawTx(rawTx, (err, metaSignedTx) => {
         if (err) reject(err)
-        const params = {
-          metaNonce: txParams.nonce,
-          metaSignedTx,
-        };
-        if (this.logger) {
-          this.logger.info(params)
-        } else {
-          console.log(params);
-        }
-        resolve(params);
+        // if (this.logger) {
+        //   this.logger.info(params)
+        // } else {
+        //   console.log(params);
+        // }
+        resolve(metaSignedTx);
       });
     });
   };
@@ -173,7 +157,6 @@ class MetaTxHandler {
     tx.gasPrice = new this.BN(price).toNumber()
     tx.nonce = await this.web3.eth.getTransactionCount(signer.getAddress())
     const estimatedGas = await this.estimateGas(tx, signer.getAddress())
-    // add some buffer to the limit
     tx.gasLimit = estimatedGas.add(new this.BN(1000000))
     const rawTx = tx.serialize().toString('hex')
     return new Promise((resolve, reject) => {
